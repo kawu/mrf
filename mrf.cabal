@@ -13,9 +13,9 @@ Exposed-modules:    Data.MRF.Base
                     Data.MRF.ParamSet
                     Data.MRF.Train.SGD
                     Data.MRF.Inference
-Other-modules:      Data.MRF.Values
+		    Data.MRF.Values
                     Data.MRF.Features
-                    Data.MRF.Generic.FactorGraph
+Other-modules:      Data.MRF.Generic.FactorGraph
                     Data.MRF.Generic.Feature
                     Data.MRF.Generic.ParamSet
                     Data.MRF.ParamSet.ParamMap

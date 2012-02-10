@@ -1,6 +1,8 @@
 module Data.MRF.FactorGraph
 ( FactorGraph (..)
 , mkFactorGraph
+, Labeled (..)
+, mkLabeled
 ) where
 
 -- TODO: In Data.MRF.FactorGraph.Unboxed implement unboxed version
