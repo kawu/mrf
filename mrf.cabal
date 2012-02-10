@@ -1,0 +1,40 @@
+Name:               mrf
+Version:            0.0.0
+Synopsis:           Markov random fields library.
+Description:        Library for Markov random fields (undirected graphical models).
+License:            BSD3
+License-file:       LICENSE
+Author:             Jakub Waszczuk
+Maintainer:         waszczuk.kuba@gmail.com
+Build-type:         Simple
+Exposed-modules:    Data.MRF.Base
+                    Data.MRF.Generic
+                    Data.MRF.FactorGraph
+                    Data.MRF.ParamSet
+                    Data.MRF.Train.SGD
+                    Data.MRF.Inference
+Other-modules:      Data.MRF.Values
+                    Data.MRF.Features
+                    Data.MRF.ParamSet.ParamMap
+                    Data.MRF.ParamSet.ParamArray
+                    Data.MRF.ParamSet.VectCore
+                    Data.MRF.Train.Gradient
+                    Data.MRF.MarkedArray
+                    Data.MRF.LogMath
+                    Data.MRF.Util
+Build-Depends:      base
+                  , primitive
+                  , containers
+                  , vector
+                  , array
+                  , ListLike
+                  , listlike-instances
+                  , random
+extensions:         ForeignFunctionInterface
+                    MultiParamTypeClasses
+                    FunctionalDependencies
+                    FlexibleContexts
+                    FlexibleInstances
+                    UndecidableInstances
+                    TypeSynonymInstances
+                    DoAndIfThenElse
