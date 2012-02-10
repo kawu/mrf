@@ -15,6 +15,9 @@ Exposed-modules:    Data.MRF.Base
                     Data.MRF.Inference
 Other-modules:      Data.MRF.Values
                     Data.MRF.Features
+                    Data.MRF.Generic.FactorGraph
+                    Data.MRF.Generic.Feature
+                    Data.MRF.Generic.ParamSet
                     Data.MRF.ParamSet.ParamMap
                     Data.MRF.ParamSet.ParamArray
                     Data.MRF.ParamSet.VectCore
