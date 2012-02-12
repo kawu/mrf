@@ -29,7 +29,7 @@ import           Control.Parallel.Strategies (rseq, parMap)
 
 import           Data.MRF.Base
 import           Data.MRF.LogMath
-import           Data.MRF.Generic
+import           Data.MRF.Generic hiding (fromList)
 import           Data.MRF.Values
 import		 Data.MRF.Util
 

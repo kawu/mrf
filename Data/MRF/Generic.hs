@@ -6,4 +6,4 @@ module Data.MRF.Generic
 
 import Data.MRF.Generic.FactorGraph
 import Data.MRF.Generic.Feature
-import Data.MRF.Generic.ParamSet hiding (fromList)
+import Data.MRF.Generic.ParamSet

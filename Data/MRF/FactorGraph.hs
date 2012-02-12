@@ -16,7 +16,7 @@ import           Data.ListLike.Vector
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 
-import           Data.MRF.Generic hiding (FactorGraph)
+import           Data.MRF.Generic hiding (FactorGraph, fromList)
 import qualified Data.MRF.Generic as G
 
 -- type Dom x = Values x

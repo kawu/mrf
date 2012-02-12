@@ -9,7 +9,7 @@ import Prelude hiding (length)
 import Data.ListLike (ListLike, fromList, toList, index, length)
 
 import Data.MRF.Base
-import Data.MRF.Generic
+import Data.MRF.Generic hiding (fromList)
 
 -- | Chosen values (cartesian product) of given nodes.
 values :: WGV g f v x => g -> NodeIxs -> [(Values x, Double)]
