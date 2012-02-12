@@ -3,6 +3,7 @@ module Data.MRF.FactorGraph
 , mkFactorGraph
 , Labeled (..)
 , mkLabeled
+, Dom
 ) where
 
 -- TODO: In Data.MRF.FactorGraph.Unboxed implement unboxed version
@@ -19,9 +20,7 @@ import           Data.MRF.Generic hiding (FactorGraph)
 import qualified Data.MRF.Generic as G
 
 -- type Dom x = Values x
--- type Adj = NodeIxs
 type Dom x  = V.Vector x
-type Adj    = U.Vector Int
 
 data FactorGraph c x = FactorGraph
     { graphNodes    :: V.Vector (Dom x)
