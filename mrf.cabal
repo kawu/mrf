@@ -40,4 +40,3 @@ extensions:         ForeignFunctionInterface
                     FlexibleInstances
                     UndecidableInstances
                     TypeSynonymInstances
-                    DoAndIfThenElse

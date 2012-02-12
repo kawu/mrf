@@ -60,11 +60,12 @@ consumeElem :: (Double -> Double -> Double) -> MarkedArray
             -> [Int] -> (Int, Double) -> IO [Int]
 consumeElem f (MarkedArray arr barr _) trace (i, v) = do
     b <- A.readArray barr i
-    if b == False then do
-        A.writeArray barr i True
-        A.writeArray arr i v
-        return (i:trace)
-    else do
-        w <- A.readArray arr i
-        A.writeArray arr i $! f w v
-        return trace
+    if b == False
+        then do
+            A.writeArray barr i True
+            A.writeArray arr i v
+            return (i:trace)
+        else do
+            w <- A.readArray arr i
+            A.writeArray arr i $! f w v
+            return trace
