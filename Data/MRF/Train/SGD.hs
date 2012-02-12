@@ -63,8 +63,8 @@ trainParams trainData evalData args params = do
     putStrLn "\n  -- FINISHED --"
 
     putStrLn $ ("\naccuracy train = " ++)
-             -- $ show $ (accuracy' $ workersNum args) params'
-             $ show $ accuracy params'
+             $ show $ (accuracy $ workersNum args) params'
+             -- $ show $ accuracy params'
              $ toList trainData
     return params'
 
@@ -73,8 +73,8 @@ putInfo :: (ListLike v g, ParamSet p f c x, WGV g c w x)
 putInfo params dataSet point args = do
     acc <- return $ case length dataSet of
         0 -> "#"
-        _ -> show $ accuracy params $ toList dataSet
---         _ -> show $ accuracy' (workersNum args) params $ V.toList dataSet
+        _ -> show $ accuracy (workersNum args) params $ toList dataSet
+--         _ -> show $ accuracy params $ toList dataSet
     putStrLn $ "\n" ++ "[" ++ (show $ floor $ point) ++ "] "
         ++ "accuracy eval = " ++ acc
 

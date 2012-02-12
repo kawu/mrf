@@ -33,6 +33,7 @@ Build-Depends:      base
                   , ListLike
                   , listlike-instances
                   , random
+		  , parallel
 extensions:         ForeignFunctionInterface
                     MultiParamTypeClasses
                     FunctionalDependencies

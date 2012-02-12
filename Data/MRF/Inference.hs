@@ -25,6 +25,7 @@ import qualified Data.Ix as Ix
 import           Data.List (maximumBy)
 import           Data.Function (on)
 import qualified Data.Array as A
+import           Control.Parallel.Strategies (rseq, parMap)
 
 import           Data.MRF.Base
 import           Data.MRF.LogMath
@@ -296,9 +297,18 @@ goodAndBad' params dataset =
     let add (g, b) (g', b') = (g + g', b + b')
     in  foldl add (0, 0) $ map (goodAndBad params) dataset
 
-accuracy :: (ParamSet p f c x, WGV g c v x) => p -> [g] -> Double
-accuracy params dataset = fromIntegral good / fromIntegral (good + bad)
-    where (good, bad) = goodAndBad' params dataset
+-- accuracy :: (ParamSet p f c x, WGV g c v x) => p -> [g] -> Double
+-- accuracy params dataset = fromIntegral good / fromIntegral (good + bad)
+--     where (good, bad) = goodAndBad' params dataset
+
+-- | Parallel accuracy computation.
+accuracy :: (ParamSet p f c x, WGV g c v x) => Int -> p -> [g] -> Double
+accuracy k params dataset =
+    let parts = partition k dataset
+        xs = parMap rseq (goodAndBad' params) parts
+        (good, bad) = foldl add (0, 0) xs
+        add (g, b) (g', b') = (g + g', b + b')
+    in  fromIntegral good / fromIntegral (good + bad)
 
 ------------------------------------------------------------------------------
 
