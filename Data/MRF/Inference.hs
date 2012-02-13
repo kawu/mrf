@@ -26,6 +26,8 @@ import           Data.List (maximumBy)
 import           Data.Function (on)
 import qualified Data.Array as A
 import           Control.Parallel.Strategies (rseq, parMap)
+import           Control.Parallel (par, pseq)
+import           GHC.Conc (numCapabilities)
 
 import           Data.MRF.Base
 import           Data.MRF.LogMath
@@ -221,8 +223,9 @@ prob params graph actives alpha beta k xs
 -- There may be (and probably will) duplicates in the output list.
 -- TODO: Should return also Z normalization factor ?
 expectedFeaturesIn :: (ParamSet p f c x, FGV g c v x) => p -> g -> [(f, Double)]
-expectedFeaturesIn params graph = concat
-    [expectedOn k | k <- [0 .. n - 1]]
+expectedFeaturesIn params graph =
+    zx `par` zx' `pseq` zx `pseq`
+      concat [expectedOn k | k <- [0 .. n - 1]]
   where
     n = factorsNum graph
     as = activeSets graph
@@ -235,7 +238,7 @@ expectedFeaturesIn params graph = concat
     alpha = forward params graph as
     beta = backward params graph as
     zx = unProbSum $ beta 0 empty
-    -- zx = alpha n empty
+    zx' = unProbSum $ alpha n empty
 
     expectedOn k =
         [ (ft, pr xs - zx) | xs <- vs $ ns k
@@ -301,10 +304,11 @@ goodAndBad' params dataset =
 -- accuracy params dataset = fromIntegral good / fromIntegral (good + bad)
 --     where (good, bad) = goodAndBad' params dataset
 
--- | Parallel accuracy computation.
-accuracy :: (ParamSet p f c x, WGV g c v x) => Int -> p -> [g] -> Double
-accuracy k params dataset =
-    let parts = partition k dataset
+-- | Parallel accuracy computation.  TODO: use implicit parallelism ?
+accuracy :: (ParamSet p f c x, WGV g c v x) => p -> [g] -> Double
+accuracy params dataset =
+    let k = numCapabilities
+    	parts = partition k dataset
         xs = parMap rseq (goodAndBad' params) parts
         (good, bad) = foldl add (0, 0) xs
         add (g, b) (g', b') = (g + g', b + b')

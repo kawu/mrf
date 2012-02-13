@@ -5,7 +5,6 @@ module Data.MRF.Generic.ParamSet
 ) where
 
 import qualified Data.Set as Set
-import Control.Monad.Primitive (PrimMonad)
 
 import Data.MRF.Generic.Feature
 
@@ -15,13 +14,13 @@ class ParamCore p where
     -- the given function to compute new values.  NOTE: This is unsafe,
     -- internal operation which modify the parameter set *in place*.
     -- The input parameter set should not be used after the operation.
-    unsafeConsume   :: PrimMonad m => (Double -> Double -> Double)
-                                   -> [(Int, Double)] -> p -> m p
+    unsafeConsume   :: (Double -> Double -> Double)
+                    -> [(Int, Double)] -> p -> IO p
     -- | Map the entire parameter set using the supplied function.
     -- NOTE: This is unsafe, internal operation which modify
     -- the parameter set *in place*.  The input parameter set
     -- should not be used after the operation.
-    unsafeMap       :: PrimMonad m => (Double -> Double) -> p -> m p
+    unsafeMap       :: (Double -> Double) -> p -> IO p
 
 class (Feature f c x, ParamCore p) => ParamSet p f c x | p -> f where
 

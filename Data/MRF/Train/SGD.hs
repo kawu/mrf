@@ -9,6 +9,7 @@ import System.Random (randomRIO, setStdGen, mkStdGen)
 import Control.Monad (foldM, forM_, when)
 import Control.Monad.ST (ST, runST)
 import System.IO (hSetBuffering, stdout, BufferMode (NoBuffering))
+import GHC.Conc (numCapabilities)
 
 import Control.Concurrent (newEmptyMVar, putMVar, takeMVar, forkIO)
 
@@ -25,8 +26,7 @@ data TrainArgs = TrainArgs
     , regVar :: Double
     , iterNum :: Double
     , scale0 :: Double
-    , tau :: Double
-    , workersNum :: Int }
+    , tau :: Double }
 
 trainParams :: (ListLike v g, ParamSet p f c x, WGV g c w x)
             => v -> v -> TrainArgs -> p -> IO p
@@ -54,7 +54,7 @@ trainParams trainData evalData args params = do
     putStrLn "\n  -- TRAINING --"
 
     -- buffers for gradients
-    gradBufs <- sequence $ replicate (workersNum args) (MA.new ms)
+    gradBufs <- sequence $ replicate numCapabilities (MA.new ms)
     setStdGen $ mkStdGen 0
     params' <- foldM
         (trainStep trainData evalData args step gradBufs)
@@ -63,8 +63,7 @@ trainParams trainData evalData args params = do
     putStrLn "\n  -- FINISHED --"
 
     putStrLn $ ("\naccuracy train = " ++)
-             $ show $ (accuracy $ workersNum args) params'
-             -- $ show $ accuracy params'
+             $ show $ accuracy params'
              $ toList trainData
     return params'
 
@@ -73,8 +72,7 @@ putInfo :: (ListLike v g, ParamSet p f c x, WGV g c w x)
 putInfo params dataSet point args = do
     acc <- return $ case length dataSet of
         0 -> "#"
-        _ -> show $ accuracy (workersNum args) params $ toList dataSet
---         _ -> show $ accuracy params $ toList dataSet
+        _ -> show $ accuracy params $ toList dataSet
     putStrLn $ "\n" ++ "[" ++ (show $ floor $ point) ++ "] "
         ++ "accuracy eval = " ++ acc
 
@@ -98,7 +96,7 @@ updateParams params gradBufs batch args scale trainSize =
              / (fromIntegral trainSize)
         iVar2 = 1.0 / (regVar args ^ 2)
 
-        parts = partition (workersNum args) $ toList batch
+        parts = partition numCapabilities $ toList batch
         cg (gradBuf, part) = computeGradient params scale gradBuf part
     in do
         -- explicit concurrent computation of gradients
@@ -106,10 +104,8 @@ updateParams params gradBufs batch args scale trainSize =
         forM_ (zip gradBufs parts) $ \(buffer, part) -> forkIO $ do
             gradient <- computeGradient params scale buffer part
             putMVar com gradient
-        grads <- sequence [takeMVar com | _ <- [1..workersNum args]]
+        grads <- sequence [takeMVar com | _ <- [1..numCapabilities]]
 
-        -- | TODO: Use parallel version ?
-        -- params' <- unsafeMapParallel (workersNum args) regularization params
         params' <- unsafeMap regularization params
         result <- foldM (\params grad ->
             applyGradient grad params) params' grads
