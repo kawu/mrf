@@ -131,7 +131,7 @@ doBackward params graph as =
     beta  = (betaT V.!)
     betaT = fromList $ map betaMapOn [0..n]
 --     betaMapOn = (Map.!) . Map.fromList . betaOn
-    betaMapOn k =
+    betaMapOn k = {-# SCC "betaMapOn" #-}
         let bns = bounds $ as k
             arr = A.array bns $ betaOn k
         in  (A.!) arr 
@@ -139,18 +139,22 @@ doBackward params graph as =
         ( fromList [0 | _ <- toList vs]
         , fromList [length (node graph i) - 1 | i <- toList vs] )
 
-    betaOn k = [(xs, compute k xs) | xs <- vs $ as k]
-
-    compute k xs
-        | k < n = sSum
-            [ (mulOn $ xs `append` ys)
-                (phiOn        $ restrictTo (ns k)       $ xs `append` ys)
-                (beta (k + 1) $ restrictTo (as $ k + 1) $ xs `append` ys)
-            | ys <- vs $ ds k ]
-        | otherwise = sOne
+    betaOn k =
+        [(xs, compute xs) | xs <- vs $ as k]
       where
-        phiOn = sum . map (phi params)
+        compute xs
+            | k < n = sSum
+                [ (mulOn $ xs `append` ys)
+                    (phiOn        $ restrictToNs $ xs `append` ys)
+                    (beta (k + 1) $ restrictToAs $ xs `append` ys)
+                | ys <- vs $ ds k ]
+            | otherwise = sOne
+        phiOn = {-# SCC "compute.phiOn" #-} sum . map (phi params)
               . genFeatures (fs k) . vsOn (ns k)
+
+        restrictToNs    = restrictTo $ ns k
+        restrictToAs    = restrictTo $ as $ k + 1
+
         both = as k `append` ds k
         restrictTo vs = select vs both 
         mulOn = gMul . BackwardSt graph as k both
@@ -183,32 +187,29 @@ instance FGV g c v x => Graphing ProbSum g c v x where
 
 psi :: FGV g c v x => g -> NodeIxs -> AccColumn ProbSum
     -> NodeIxs -> ValueIxs -> Double
-psi graph as beta vs xs = unProbSum $ sSum
-    [ beta $ betaX diffX 
-    | diffX <- valueIxs' graph diffV ]
+psi graph as beta vs =
+    psi'
   where
     jointV = as `vIntersect` vs
     diffV = as `vDifference` jointV
-    -- ?!? jointV posortowane, można zagwarantować posortowanie vs i
-    -- zaimplementować wersję select[From]Sorted.  Przydałby się
-    -- osobny typ reprezentujący posortowany typ ListLike. 
-    jointX = select jointV vs xs
-    -- ?!? jointV, diffV, as posortowane
-    betaX = merge jointV diffV as jointX
 
+    selectV = select jointV vs
+    mergeV  = merge jointV diffV as
+
+    psi' xs = unProbSum $ sSum
+        [ beta $ betaX diffX 
+        | diffX <- valueIxs' graph diffV ]
+      where
+        jointX = selectV xs
+        betaX = mergeV jointX
+    
 -- | Probability, that variables adjacent to the given factor take on
 -- given values.  NOTE: The result is only *proportional* to probability
 -- and has to be normalized using the Z normalization factor.
 prob :: (ParamSet p f c x, FGV g c v x) => p -> g -> ActiveSets
      -> AccTable ProbSum -> AccTable ProbSum -> Int -> ValueIxs -> Double
-prob params graph actives alpha beta k xs
-    = sum
-        [ phi params ft
-        | ft <- genFeatures (fs k) (vsOn vs xs) ]
-    + logSum
-        [ psi graph as  (alpha k)      (vs `append` vs') (xs `append` xs')
-        + psi graph as' (beta $ k + 1) (vs `append` vs') (xs `append` xs')
-        | xs' <- valueIxs' graph vs' ]
+prob params graph actives alpha beta k =
+    prob'
   where
     fs  = factor graph
     ns  = adjacent . fs
@@ -218,6 +219,18 @@ prob params graph actives alpha beta k xs
     as' = actives $ k + 1
     vs  = ns k
     vs' = (as `vIntersect` as') `vDifference` vs
+
+    prob' xs
+        = sum [ phi params ft
+              | ft <- genFeatures (fs k) (vsOn vs xs) ]
+        + logSum
+            [ psiAlpha (xs `append` xs')
+            + psiBeta  (xs `append` xs')
+            | xs' <- valueIxs' graph vs' ]
+            
+    psiAlpha    = psi graph as  (alpha k)      (vs `append` vs')
+    psiBeta     = psi graph as' (beta $ k + 1) (vs `append` vs')
+
 
 -- | Compute expected number of features in the given factor graph.
 -- There may be (and probably will) duplicates in the output list.
@@ -258,7 +271,7 @@ instance Semiring (Disamb x) where
         | otherwise     = DS x' ds'
     sZero               = DS mInf []
     sOne                = DS 0.0 []
-    sMul x (DS y ds)   = DS (x + y) ds -- ^ or undefined ?
+    sMul x (DS y ds)    = DS (x + y) ds -- ^ or undefined ?
 
 instance FGV g c v x => Graphing (Disamb x) g c v x where
     gMul st x (DS y ds) =
@@ -341,20 +354,23 @@ vDifference = vSetOp Set.difference
 
 merge :: (Ix.Ix i, ListLike w i, ListLike v e, Ord e)
       => w -> w -> w -> v -> v -> v
-merge vs vs' vsTo xs xs'
-    | null vs'  = select vsTo vs xs
-    | null vs   = select vsTo vs' xs'
-    | otherwise = select vsTo (vs `append` vs') (xs `append` xs')
+merge vs vs' vsTo
+    | null vs'  = takeL $ select vsTo vs -- xs
+    | null vs   = takeR $ select vsTo vs' -- xs'
+    | otherwise = takeB $ select vsTo (vs `append` vs') -- (xs `append` xs')
+  where
+    takeL sel xs xs' = sel xs
+    takeR sel xs xs' = sel xs'
+    takeB sel xs xs' = sel $ xs `append` xs'
 
 select :: (Ix.Ix i, ListLike w i, ListLike v e, Ord e) => w -> w -> v -> v
-select which vs xs
-    | which `eq` vs = xs
-    | otherwise     = LL.map (index xs) is
+select which vs
+    | which `eq` vs = id
+    | otherwise     = select'
   where
     eq v w  = length v == length w && all (uncurry (==)) (LL.zip v w)
     is      = LL.map iFor which  :: [Int]
-    -- vsMap   = Map.fromList $ LL.zip vs [0..]
     iFor v  = fromJust
-        -- $   Map.lookup v vsMap
         $   elemIndex v vs
         <|> error "select: vertex not in vs"
+    select' xs =  LL.map (index xs) is

@@ -42,9 +42,18 @@ valueIxs' graph
   where
     ixs xs = [0 .. length xs - 1]
 
+-- valuesOn' :: FGV g f v x => g -> NodeIxs -> ValueIxs -> Values x
+-- valuesOn' graph nodeIxs valueIxs = fromList
+--     [ node `index` i
+--     | (node, i) <- zip nodes $ toList valueIxs ]
+--   where
+--     nodes = map (node graph) $ toList nodeIxs
+
 valuesOn' :: FGV g f v x => g -> NodeIxs -> ValueIxs -> Values x
-valuesOn' graph nodeIxs valueIxs = fromList
-    [ node `index` i
-    | (node, i) <- zip nodes $ toList valueIxs ]
+valuesOn' graph nodeIxs =
+    doIt
   where
-    nodes = map (node graph) $ toList nodeIxs
+    nodes = map (node graph) nodeIxs
+    doIt valueIxs =
+        [ node `index` i
+        | (node, i) <- zip nodes valueIxs ]
