@@ -38,5 +38,7 @@ class (Feature f c x, ParamCore p) => ParamSet p f c x | p -> f where
 -- There may be repetitions in the input list.
 mkParamSet :: (Ord f, ParamSet p f c x) => [f] -> p
 mkParamSet fs =
-    let fs' = Set.toList $ Set.fromList fs
-    in  fromList [(ft, 0.0) | ft <- fs']
+    let fSet = Set.fromList fs
+        fs'  = Set.toList fSet
+        vs   = replicate (Set.size fSet) 0.0
+    in  fromList (zip fs' vs)

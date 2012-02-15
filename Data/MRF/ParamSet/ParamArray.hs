@@ -3,6 +3,7 @@ module Data.MRF.ParamSet.ParamArray
 , mkParamArray
 ) where
 
+import           Data.List (foldl')
 import qualified Data.Array.Unboxed as A
 import qualified Data.Vector.Unboxed as U
 import           Data.Binary (Binary, put, get)
@@ -13,7 +14,6 @@ import           Data.MRF.Vector.Binary
 import           Data.MRF.Generic.ParamSet
 import           Data.MRF.Generic
 import           Data.MRF.ParamSet.VectCore
-
 
 data ParamArray f = ParamArray
     { ixs    :: A.Array f Int
@@ -43,14 +43,13 @@ instance ParamCore (ParamArray f) where
 
 instance (Ix.Ix f, Feature f c x) => ParamSet (ParamArray f) f c x where
 
-    fromList paramList =
-        ParamArray ixs values
+    fromList params =
+        ParamArray ixs $ U.fromList values
       where
-        feats = map fst paramList
-        values = U.fromList $ map snd paramList
+        (feats, values) = unzip params
         ixs = A.array bounds [(key, -1) | key <- Ix.range bounds]
-         A.// zip feats [0..]
-        bounds = (minimum feats, maximum feats)
+                        A.// zip feats [0..]
+        bounds = minAndMax feats
 
     size = U.length . values
 
@@ -65,6 +64,18 @@ instance (Ix.Ix f, Feature f c x) => ParamSet (ParamArray f) f c x where
             | otherwise     = values ps U.! ix
         inRange = Ix.inRange (A.bounds $ ixs ps) feat
         ix      = ixs ps A.! feat
+
+minAndMax :: Ord a => [a] -> (a, a)
+minAndMax xs =
+    foldl' f (head xs, head xs) (tail xs)
+  where
+    f (mn, mx) x =
+        let mn' = choice (<) mn x
+            mx' = choice (>) mx x
+        in  mn' `seq` mx `seq` (mn', mx')
+    choice cmp x y
+        | x `cmp` y = x
+        | otherwise = y
 
 mkParamArray :: (Ix.Ix f, Feature f c x) => [f] -> ParamArray f
 mkParamArray = mkParamSet
