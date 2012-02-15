@@ -4,6 +4,7 @@ module Data.MRF.Inference
 , forward
 , backward
 , disamb
+, disamb'
 , accuracy
 , ProbSum (..)
 , AccTable
@@ -101,17 +102,14 @@ class (FGV g c v x, Semiring t) => Graphing t g c v x where
 -- Assumption: lists have exactly *the same* length. Otherwise, the code
 -- will not work correctly !
 instance Ix.Ix [Int] where
--- instance Ix.Ix x => Ix.Ix [x] where
-    range (v, w)
-        = map fromList $ sequence $ map Ix.range
-        $ zip (toList v) (toList w)
+    range (v, w) = sequence $ map Ix.range $ zip v w
 
     inRange (v, w) u = all id
         [ Ix.inRange (x, y) z
-        | (x, y, z) <- zip3 (toList v) (toList w) (toList u) ]
+        | (x, y, z) <- zip3 v w u ]
 
     index (v, w) u =
-        foldl f 0 $ zip3 (toList v) (toList w) (toList u)
+        foldl f 0 $ zip3 v w u
       where
         f acc (p, q, i) = acc * (q - p + 1) + i - p
         -- f acc (p, q, i) = acc * Ix.rangeSize (p, q) + Ix.index (p, q) i
@@ -262,10 +260,12 @@ expectedFeaturesIn params graph =
 ------------------------------------------------------------------------------
 
 -- | Data structure for disambiguation computation.
-data Disamb x = DS Double (DisambPairs x)
-type DisambPairs x = [(Int, x)]
+data Disamb         = DS Double DisambPairs
+type NodeIx         = Int
+type ValueIx        = Int
+type DisambPairs    = [(NodeIx, ValueIx)]
 
-instance Semiring (Disamb x) where
+instance Semiring Disamb where
     sPlus (DS x ds) (DS x' ds')
         | x > x'        = DS x ds
         | otherwise     = DS x' ds'
@@ -273,7 +273,7 @@ instance Semiring (Disamb x) where
     sOne                = DS 0.0 []
     sMul x (DS y ds)    = DS (x + y) ds -- ^ or undefined ?
 
-instance FGV g c v x => Graphing (Disamb x) g c v x where
+instance FGV g c v x => Graphing Disamb g c v x where
     gMul st x (DS y ds) =
         DS (x + y) (newDs ++ ds)
       where
@@ -282,27 +282,32 @@ instance FGV g c v x => Graphing (Disamb x) g c v x where
 
         BackwardSt graph as k vs xs = st
         vs' = filterVar graph (ns k) `vDifference` as k
-        xs' = valuesOn' graph vs' $ select vs' vs xs
-        newDs = zip (toList vs') (toList xs')
+        xs' = select vs' vs xs
+        newDs = zip vs' xs'
             
-disamb :: (ParamSet p f c x, FGV g c v x) => p -> g -> [x]
+disamb :: (ParamSet p f c x, FGV g c v x) => p -> g -> ValueIxs
 disamb params graph =
-    map snd $ sort $ ds ++ zip constIxs const
+    map snd $ sort $ ds ++ zip constIxs (repeat 0)
   where
     beta        = backward params graph $ activeSets graph
     DS _ ds     = beta 0 empty
     constIxs    = filterConst graph [0 .. nodesNum graph - 1]
-    const       = [index (node graph k) 0 | k <- constIxs]
+
+disamb' :: (ParamSet p f c x, FGV g c v x) => p -> g -> [x]
+disamb' params graph =
+    [ index node k | (node, k) <- zip ns ys ]
+  where
+    ns = nodes graph
+    ys = disamb params graph
 
 goodAndBad :: (ParamSet p f c x, WGV g c v x) => p -> g -> (Int, Int)
 goodAndBad params graph =
     foldl gather (0, 0) $ zip labels labels'
   where
     labels' = disamb params graph
-    labels = [ valueOn i $ fst $ maximumBy (compare `on` snd)
-                         $ toList $ weights graph i
+    labels = [ fst $ maximumBy (compare `on` snd)
+                   $ toList $ weights graph i
              | i <- [0 .. nodesNum graph - 1] ]
-    valueOn i = index $ node graph i
     gather (good, bad) (x, y)
         | x == y = (good + 1, bad)
         | otherwise = (good, bad + 1)
@@ -355,9 +360,9 @@ vDifference = vSetOp Set.difference
 merge :: (Ix.Ix i, ListLike w i, ListLike v e, Ord e)
       => w -> w -> w -> v -> v -> v
 merge vs vs' vsTo
-    | null vs'  = takeL $ select vsTo vs -- xs
-    | null vs   = takeR $ select vsTo vs' -- xs'
-    | otherwise = takeB $ select vsTo (vs `append` vs') -- (xs `append` xs')
+    | null vs'  = takeL $ select vsTo vs
+    | null vs   = takeR $ select vsTo vs'
+    | otherwise = takeB $ select vsTo (vs `append` vs')
   where
     takeL sel xs xs' = sel xs
     takeR sel xs xs' = sel xs'

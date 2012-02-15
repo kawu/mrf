@@ -5,17 +5,29 @@ module Data.MRF.ParamSet.ParamArray
 
 import qualified Data.Array.Unboxed as A
 import qualified Data.Vector.Unboxed as U
-import Control.Monad (forM_)
-import Data.Ix (Ix, inRange)
+import           Data.Binary (Binary, put, get)
+import           Control.Monad (forM_)
+import           Data.Ix (Ix, inRange)
 
-import Data.MRF.Generic.ParamSet
-import Data.MRF.Generic
-import Data.MRF.ParamSet.VectCore
+import           Data.MRF.Vector.Binary
+import           Data.MRF.Generic.ParamSet
+import           Data.MRF.Generic
+import           Data.MRF.ParamSet.VectCore
 
 
 data ParamArray f = ParamArray
     { ixs    :: A.Array f Int
     , values :: U.Vector Double }
+
+
+instance (Ix f, Binary f) => Binary (ParamArray f) where
+    put params = do
+        put $ ixs params
+        put $ values params
+    get = do
+        ixs <- get
+        values <- get
+        return $ ParamArray ixs values
 
 
 instance ParamCore (ParamArray f) where

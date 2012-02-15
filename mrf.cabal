@@ -25,6 +25,7 @@ Other-modules:      Data.MRF.Generic.FactorGraph
                     Data.MRF.MarkedArray
                     Data.MRF.LogMath
                     Data.MRF.Util
+                    Data.MRF.Vector.Binary
 Build-Depends:      base
                   , primitive
                   , containers
@@ -34,6 +35,7 @@ Build-Depends:      base
                   , listlike-instances
                   , random
 		  , parallel
+                  , binary
 extensions:         ForeignFunctionInterface
                     MultiParamTypeClasses
                     FunctionalDependencies

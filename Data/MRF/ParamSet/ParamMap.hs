@@ -5,16 +5,28 @@ module Data.MRF.ParamSet.ParamMap
 
 import qualified Data.Map as Map
 import qualified Data.Vector.Unboxed as U
-import Control.Monad (forM_)
+import           Data.Binary (Binary, put, get)
+import           Control.Monad (forM_)
 
-import Data.MRF.Generic.ParamSet
-import Data.MRF.Generic
-import Data.MRF.ParamSet.VectCore
+import           Data.MRF.Vector.Binary
+import           Data.MRF.Generic.ParamSet
+import           Data.MRF.Generic
+import           Data.MRF.ParamSet.VectCore
 
 
 data ParamMap f = ParamMap
     { ixs    :: Map.Map f Int
     , values :: U.Vector Double }
+
+
+instance (Ord f, Binary f) => Binary (ParamMap f) where
+    put params = do
+        put $ ixs params
+        put $ values params
+    get = do
+        ixs <- get
+        values <- get
+        return $ ParamMap ixs values
 
 
 instance ParamCore (ParamMap f) where
