@@ -1,6 +1,7 @@
 module Data.MRF.ParamSet.ParamArray
 ( ParamArray
 , mkParamArray
+, MkBounds (..)
 ) where
 
 import           Data.List (foldl')
@@ -41,15 +42,22 @@ instance ParamCore (ParamArray f) where
         return $ ParamArray (ixs params) values' 
 
 
-instance (Ix.Ix f, Feature f c x) => ParamSet (ParamArray f) f c x where
+class Ix.Ix f => MkBounds f where
+    selBounds   :: (f, f) -> f -> (f, f)
+    mkBounds    :: [f] -> (f, f)
+    mkBounds xs =
+        foldl' selBounds (head xs, head xs) (tail xs)
+
+
+instance (MkBounds f, Feature f c x) => ParamSet (ParamArray f) f c x where
 
     fromList params =
-        ParamArray ixs $ U.fromList values
+        ixs `seq` ParamArray ixs (U.fromList values)
       where
         (feats, values) = unzip params
         ixs = A.array bounds [(key, -1) | key <- Ix.range bounds]
                         A.// zip feats [0..]
-        bounds = minAndMax feats
+        bounds = mkBounds feats
 
     size = U.length . values
 
@@ -65,17 +73,5 @@ instance (Ix.Ix f, Feature f c x) => ParamSet (ParamArray f) f c x where
         inRange = Ix.inRange (A.bounds $ ixs ps) feat
         ix      = ixs ps A.! feat
 
-minAndMax :: Ord a => [a] -> (a, a)
-minAndMax xs =
-    foldl' f (head xs, head xs) (tail xs)
-  where
-    f (mn, mx) x =
-        let mn' = choice (<) mn x
-            mx' = choice (>) mx x
-        in  mn' `seq` mx `seq` (mn', mx')
-    choice cmp x y
-        | x `cmp` y = x
-        | otherwise = y
-
-mkParamArray :: (Ix.Ix f, Feature f c x) => [f] -> ParamArray f
+mkParamArray :: (MkBounds f, Feature f c x) => [f] -> ParamArray f
 mkParamArray = mkParamSet
