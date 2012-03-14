@@ -11,18 +11,15 @@ Exposed-modules:    Data.MRF.Base
                     Data.MRF.Generic
                     Data.MRF.FactorGraph
                     Data.MRF.ParamSet
-                    Data.MRF.Train.SGD
                     Data.MRF.Inference
 		    Data.MRF.Values
                     Data.MRF.Features
+                    Data.MRF.Gradient
 Other-modules:      Data.MRF.Generic.FactorGraph
                     Data.MRF.Generic.Feature
                     Data.MRF.Generic.ParamSet
                     Data.MRF.ParamSet.ParamMap
                     Data.MRF.ParamSet.ParamArray
-                    Data.MRF.ParamSet.VectCore
-                    Data.MRF.Train.Gradient
-                    Data.MRF.MarkedArray
                     Data.MRF.LogMath
                     Data.MRF.Util
                     Data.MRF.Vector.Binary
@@ -36,6 +33,7 @@ Build-Depends:      base
                   , random
 		  , parallel
                   , binary
+                  , sgd == 0.0.0
 extensions:         ForeignFunctionInterface
                     MultiParamTypeClasses
                     FunctionalDependencies

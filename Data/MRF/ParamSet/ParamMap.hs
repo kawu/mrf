@@ -8,10 +8,11 @@ import qualified Data.Vector.Unboxed as U
 import           Data.Binary (Binary, put, get)
 import           Control.Monad (forM_)
 
+import           SGD
+
 import           Data.MRF.Vector.Binary
 import           Data.MRF.Generic.ParamSet
 import           Data.MRF.Generic
-import           Data.MRF.ParamSet.VectCore
 
 
 data ParamMap f = ParamMap
@@ -39,6 +40,8 @@ instance ParamCore (ParamMap f) where
         values' <- unsafeMap f $ values params
         return $ ParamMap (ixs params) values' 
 
+    size = size . values
+
 
 instance (Ord f, Feature f c x) => ParamSet (ParamMap f) f c x where
 
@@ -48,8 +51,6 @@ instance (Ord f, Feature f c x) => ParamSet (ParamMap f) f c x where
         feats = map fst paramList
         values = U.fromList $ map snd paramList
         ixs = Map.fromList $ zip feats [0..]
-
-    size = U.length . values
 
     featureToIx feat ps =
         fromJust $ Map.lookup feat $ ixs ps

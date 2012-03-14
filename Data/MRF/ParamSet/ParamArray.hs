@@ -11,10 +11,11 @@ import           Data.Binary (Binary, put, get)
 import           Control.Monad (forM_)
 import qualified Data.Ix as Ix -- (Ix, range, inRange)
 
+import           SGD
+
 import           Data.MRF.Vector.Binary
 import           Data.MRF.Generic.ParamSet
 import           Data.MRF.Generic
-import           Data.MRF.ParamSet.VectCore
 
 data ParamArray f = ParamArray
     { ixs    :: A.Array f Int
@@ -41,6 +42,8 @@ instance ParamCore (ParamArray f) where
         values' <- unsafeMap f $ values params
         return $ ParamArray (ixs params) values' 
 
+    size = size . values
+
 
 class Ix.Ix f => MkBounds f where
     selBounds   :: (f, f) -> f -> (f, f)
@@ -58,8 +61,6 @@ instance (MkBounds f, Feature f c x) => ParamSet (ParamArray f) f c x where
         ixs = A.array bounds [(key, -1) | key <- Ix.range bounds]
                         A.// zip feats [0..]
         bounds = mkBounds feats
-
-    size = U.length . values
 
     featureToIx feat ps =
         ixs ps A.! feat

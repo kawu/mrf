@@ -5,29 +5,16 @@ module Data.MRF.Generic.ParamSet
 ) where
 
 import qualified Data.Set as Set
+import SGD
 
 import Data.MRF.Generic.Feature
 
-class ParamCore p where
-
-    -- | Writes values from supplied (parameter index, value) list using
-    -- the given function to compute new values.  NOTE: This is unsafe,
-    -- internal operation which modify the parameter set *in place*.
-    -- The input parameter set should not be used after the operation.
-    unsafeConsume   :: (Double -> Double -> Double)
-                    -> [(Int, Double)] -> p -> IO p
-    -- | Map the entire parameter set using the supplied function.
-    -- NOTE: This is unsafe, internal operation which modify
-    -- the parameter set *in place*.  The input parameter set
-    -- should not be used after the operation.
-    unsafeMap       :: (Double -> Double) -> p -> IO p
-
+-- | TODO: c, x type variables superfluous.
 class (Feature f c x, ParamCore p) => ParamSet p f c x | p -> f where
 
     -- | Make parameter set from a list of (feature, value) pairs.
     -- There should be no repetitions in the input list.
     fromList        :: [(f, Double)] -> p
-    size            :: p -> Int
     phi             :: p -> f -> Double
 
     -- | Index of the given feature.  It can be assumed, that
